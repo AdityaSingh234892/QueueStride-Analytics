@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: stockmonitor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/stockmonitor
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=your-secret-key-change-this-in-production
+      - SMTP_SERVER=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=your-email@gmail.com
+      - SMTP_PASSWORD=your-app-password
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    restart: unless-stopped
+
+  # CV Processing Service
+  cv-processor:
+    build: ./cv_system
+    environment:
+      - API_BASE_URL=http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./cv_system:/app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

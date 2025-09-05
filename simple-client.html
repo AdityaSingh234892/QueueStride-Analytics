@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Monitoring System - Simple Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background-color: #28a745;
+            color: white;
+        }
+        .status.disconnected {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .alert {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .video-container {
+            position: relative;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #video {
+            max-width: 100%;
+            max-height: 400px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            min-width: 120px;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        #log {
+            background-color: #000;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Automated Stock Monitoring System</h1>
+    
+    <div class="container">
+        <h2>System Status</h2>
+        <p>Backend API: <span id="backend-status" class="status disconnected">Checking...</span></p>
+        <p>Last Update: <span id="last-update">Never</span></p>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="stores-count">0</div>
+                <div class="stat-label">Stores</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="cameras-count">0</div>
+                <div class="stat-label">Cameras</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="shelves-count">0</div>
+                <div class="stat-label">Shelves</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="alerts-count">0</div>
+                <div class="stat-label">Alerts</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Authentication</h2>
+        <div id="auth-section">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" placeholder="Enter your email" value="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter your password" value="admin123">
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+            <button class="btn" onclick="register()">Register</button>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+        <div id="user-info" style="display: none;">
+            <p>Welcome, <span id="username"></span>!</p>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Live Monitoring</h2>
+        <div class="video-container">
+            <video id="video" autoplay muted></video>
+            <div id="no-video" style="color: white; text-align: center;">
+                <p>📹 Click "Start Camera" to begin monitoring</p>
+            </div>
+        </div>
+        <div style="margin-top: 10px;">
+            <button class="btn" onclick="startCamera()">Start Camera</button>
+            <button class="btn" onclick="stopCamera()">Stop Camera</button>
+            <button class="btn" onclick="captureFrame()">Capture Frame</button>
+            <button class="btn" onclick="processFrame()">Process Frame</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h3>Upload Image for Analysis</h3>
+            <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+            <button class="btn" onclick="analyzeImage()">Analyze Image</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>System Log</h2>
+        <div id="log"></div>
+        <button class="btn" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let authToken = localStorage.getItem('authToken');
+        let videoStream = null;
+        let capturedFrame = null;
+        
+        // Utility functions
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('backend-status');
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+            }
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+        }
+        
+        // API functions
+        async function apiCall(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                log(`API Error: ${error.message}`);
+                throw error;
+            }
+        }
+        
+        // Authentication
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await apiCall('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                authToken = response.access_token;
+                localStorage.setItem('authToken', authToken);
+                
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('user-info').style.display = 'block';
+                document.getElementById('username').textContent = response.user.username;
+                
+                log(`Login successful: ${response.user.username}`);
+                loadDashboard();
+            } catch (error) {
+                log(`Login failed: ${error.message}`);
+            }
+        }
+        
+        async function register() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                await apiCall('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        username: email.split('@')[0],
+                        full_name: email.split('@')[0],
+                        role: 'manager'
+                    })
+                });
+                
+                log('Registration successful! Please login.');
+            } catch (error) {
+                log(`Registration failed: ${error.message}`);
+            }
+        }
+        
+        function logout() {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('user-info').style.display = 'none';
+            log('Logged out');
+        }
+        
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const analytics = await apiCall('/api/analytics/dashboard');
+                document.getElementById('stores-count').textContent = analytics.stores_count || 0;
+                document.getElementById('cameras-count').textContent = analytics.cameras_count || 0;
+                document.getElementById('shelves-count').textContent = analytics.shelves_count || 0;
+                document.getElementById('alerts-count').textContent = analytics.total_alerts || 0;
+                log('Dashboard loaded');
+            } catch (error) {
+                log(`Dashboard load failed: ${error.message}`);
+            }
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                const noVideo = document.getElementById('no-video');
+                
+                video.srcObject = stream;
+                videoStream = stream;
+                
+                video.style.display = 'block';
+                noVideo.style.display = 'none';
+                
+                log('Camera started');
+            } catch (error) {
+                log(`Camera start failed: ${error.message}`);
+            }
+        }
+        
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+                
+                const video = document.getElementById('video');
+                const noVideo = document.getElementById('no-video');
+                
+                video.style.display = 'none';
+                noVideo.style.display = 'block';
+                
+                log('Camera stopped');
+            }
+        }
+        
+        function captureFrame() {
+            if (!videoStream) {
+                log('No active camera stream');
+                return;
+            }
+            
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            capturedFrame = canvas.toDataURL('image/jpeg');
+            log('Frame captured');
+        }
+        
+        async function processFrame() {
+            if (!capturedFrame) {
+                log('No frame captured');
+                return;
+            }
+            
+            if (!authToken) {
+                log('Please login first');
+                return;
+            }
+            
+            try {
+                // Convert data URL to blob
+                const response = await fetch(capturedFrame);
+                const blob = await response.blob();
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('camera_id', '1');
+                formData.append('file', blob, 'frame.jpg');
+                
+                // Send to API
+                const result = await fetch(`${API_BASE}/api/cv/process-frame`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+                
+                if (!result.ok) {
+                    throw new Error(`HTTP ${result.status}: ${result.statusText}`);
+                }
+                
+                const data = await result.json();
+                log(`Frame processed: ${data.results.length} shelves analyzed`);
+                
+                // Display results
+                data.results.forEach(shelf => {
+                    log(`${shelf.shelf_name}: ${shelf.stock_level} (${shelf.occupancy_score.toFixed(3)})`);
+                });
+                
+            } catch (error) {
+                log(`Frame processing failed: ${error.message}`);
+            }
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    capturedFrame = e.target.result;
+                    log(`Image uploaded: ${file.name}`);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        async function analyzeImage() {
+            if (!capturedFrame) {
+                log('No image selected');
+                return;
+            }
+            
+            if (!authToken) {
+                log('Please login first');
+                return;
+            }
+            
+            try {
+                // Convert data URL to blob
+                const response = await fetch(capturedFrame);
+                const blob = await response.blob();
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('camera_id', '1');
+                formData.append('file', blob, 'image.jpg');
+                
+                // Send to API
+                const result = await fetch(`${API_BASE}/api/cv/detect-shelves`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+                
+                if (!result.ok) {
+                    throw new Error(`HTTP ${result.status}: ${result.statusText}`);
+                }
+                
+                const data = await result.json();
+                log(`Auto-detection completed: ${data.detected_shelves.length} shelves found`);
+                
+                // Display results
+                data.detected_shelves.forEach((shelf, index) => {
+                    log(`Shelf ${index + 1}: confidence ${shelf.confidence.toFixed(3)}`);
+                });
+                
+            } catch (error) {
+                log(`Image analysis failed: ${error.message}`);
+            }
+        }
+        
+        // Initialize
+        async function init() {
+            log('Initializing Stock Monitoring System...');
+            
+            // Check backend status
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    updateStatus(true);
+                    log('Backend connected successfully');
+                } else {
+                    updateStatus(false);
+                    log('Backend connection failed');
+                }
+            } catch (error) {
+                updateStatus(false);
+                log('Backend connection failed: ' + error.message);
+            }
+            
+            // Check if user is logged in
+            if (authToken) {
+                try {
+                    await loadDashboard();
+                    document.getElementById('auth-section').style.display = 'none';
+                    document.getElementById('user-info').style.display = 'block';
+                    log('Restored previous session');
+                } catch (error) {
+                    // Token might be invalid
+                    logout();
+                }
+            }
+        }
+        
+        // Start initialization when page loads
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Periodic status check
+        setInterval(async () => {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                updateStatus(response.ok);
+            } catch (error) {
+                updateStatus(false);
+            }
+        }, 10000); // Check every 10 seconds
+    </script>
+</body>
+</html>
